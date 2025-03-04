@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal</title>
+    <style>
+        @font-face {
+            font-family: 'MinecraftTen';
+            src: url('https://db.onlinewebfonts.com/t/6ab539c6fc2b21ff0b149b3d06d7f97c.woff2') format('woff2');
+        }
+
+        :root {
+            --bg-color: #000000;
+            --text-color: #00ff00;
+            --terminal-bg: #0a0a0a;
+            --prompt-color: #00ff00;
+            --input-color: #00ff00;
+            --button-color: #00ff00;
+        }
+
+        .light-theme {
+            --bg-color: #ffffff;
+            --text-color: #000000;
+            --terminal-bg: #f0f0f0;
+            --prompt-color: #000000;
+            --input-color: #000000;
+            --button-color: #000000;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'MinecraftTen', monospace;
+            font-size: 16px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .terminal {
+            background: var(--terminal-bg);
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 8px rgba(0,255,0,0.1);
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        /* Light tema için daha hafif box-shadow */
+        .light-theme .terminal {
+            box-shadow: 0 0 8px rgba(0,0,0,0.08);
+        }
+
+        /* Dark tema için daha hafif box-shadow */
+        body:not(.light-theme) .terminal {
+            box-shadow: 0 0 8px rgba(0,255,0,0.1);
+        }
+
+        .prompt {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .prompt span {
+            color: var(--prompt-color);
+        }
+
+        input {
+            background: transparent;
+            border: none;
+            color: var(--input-color);
+            font-family: 'MinecraftTen', monospace;
+            font-size: 16px;
+            outline: none;
+            width: 100%;
+        }
+
+        .output {
+            margin-top: 5px;
+            white-space: pre-line;
+            line-height: 1.2;
+            color: var(--text-color);
+        }
+
+        .theme-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: transparent;
+            border: 2px solid var(--button-color);
+            color: var(--button-color);
+            font-family: 'MinecraftTen', monospace;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .theme-toggle:hover {
+            background: var(--button-color);
+            color: var(--bg-color);
+        }
+
+        /* Terminal scrollbar */
+        .terminal::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .terminal::-webkit-scrollbar-track {
+            background: var(--terminal-bg);
+        }
+
+        .terminal::-webkit-scrollbar-thumb {
+            background: var(--text-color);
+            border-radius: 4px;
+        }
+
+        .profile-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .dropdown-toggle {
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 5px;
+            transition: transform 0.3s ease;
+        }
+
+        .dropdown-toggle.active {
+            transform: rotate(180deg);
+        }
+
+        .profile-icon {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: var(--text-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'MinecraftTen', monospace;
+            color: var(--bg-color);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 45px;
+            right: 0;
+            background: var(--terminal-bg);
+            border: 1px solid var(--text-color);
+            border-radius: 4px;
+            padding: 8px 0;
+            min-width: 150px;
+            display: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .dropdown-menu.show {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 8px 16px;
+            color: var(--text-color);
+            text-decoration: none;
+            display: block;
+            cursor: pointer;
+            font-family: 'MinecraftTen', monospace;
+            transition: background 0.2s ease;
+        }
+
+        .dropdown-item:hover {
+            background: var(--text-color);
+            color: var(--bg-color);
+        }
+
+        .help-popup {
+            position: absolute;
+            right: 80px;
+            top: 85px;
+            background: var(--terminal-bg);
+            border: 1px solid var(--text-color);
+            border-radius: 5px;
+            padding: 15px;
+            width: 300px;
+            display: none;
+            box-shadow: 0 0 10px rgba(0,255,0,0.1);
+            z-index: 1000;
+        }
+
+        /* Ok işareti ekleyelim */
+        .help-popup::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            right: 20px;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 10px solid var(--text-color);
+        }
+
+        .help-popup::after {
+            content: '';
+            position: absolute;
+            top: -9px;
+            right: 20px;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 10px solid var(--terminal-bg);
+        }
+
+        .help-popup.show {
+            display: block;
+        }
+
+        .help-popup h3 {
+            color: var(--text-color);
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .help-popup ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .help-popup li {
+            color: var(--text-color);
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .help-popup .command {
+            color: #0F0;
+            font-weight: bold;
+        }
+
+        .light-theme .help-popup .command {
+            color: #008000;
+        }
+
+        .selected-section {
+            position: absolute;
+            top: 23px;
+            right: 95px;
+            color: var(--text-color);
+            font-family: 'MinecraftTen', monospace;
+            font-size: 16px;
+            font-weight: bold;
+            display: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .selected-section.show {
+            display: block;
+        }
+
+        /* Tablet için medya sorgusu (768px'e kadar) */
+        @media screen and (max-width: 768px) {
+            .terminal {
+                margin: 10px;
+                padding: 15px;
+                font-size: 14px;
+            }
+
+            .help-popup {
+                width: 250px;
+                right: 60px;
+                top: 75px;
+                font-size: 13px;
+            }
+
+            .selected-section {
+                right: 75px;
+                font-size: 14px;
+            }
+
+            .profile-container {
+                top: 15px;
+                right: 15px;
+            }
+
+            .profile-icon {
+                width: 30px;
+                height: 30px;
+                font-size: 14px;
+            }
+
+            .theme-toggle {
+                padding: 8px 12px;
+                font-size: 12px;
+                right: 10px;
+                bottom: 10px;
+            }
+        }
+
+        /* Mobil için medya sorgusu (480px'e kadar) */
+        @media screen and (max-width: 480px) {
+            .terminal {
+                margin: 5px;
+                padding: 10px;
+                font-size: 12px;
+            }
+
+            input {
+                font-size: 12px;
+            }
+
+            .help-popup {
+                width: 200px;
+                right: 45px;
+                top: 65px;
+                font-size: 11px;
+                padding: 10px;
+            }
+
+            .selected-section {
+                right: 60px;
+                font-size: 12px;
+            }
+
+            .profile-container {
+                top: 10px;
+                right: 10px;
+            }
+
+            .profile-icon {
+                width: 25px;
+                height: 25px;
+                font-size: 12px;
+            }
+
+            .theme-toggle {
+                padding: 6px 10px;
+                font-size: 11px;
+                right: 5px;
+                bottom: 5px;
+            }
+
+            .dropdown-menu {
+                min-width: 120px;
+                font-size: 12px;
+            }
+
+            .dropdown-item {
+                padding: 6px 12px;
+            }
+        }
+
+        /* Çok küçük ekranlar için ek düzenlemeler (320px'e kadar) */
+        @media screen and (max-width: 320px) {
+            .terminal {
+                margin: 2px;
+                padding: 8px;
+                font-size: 11px;
+            }
+
+            .help-popup {
+                width: 180px;
+                right: 35px;
+                font-size: 10px;
+            }
+
+            .selected-section {
+                right: 50px;
+                font-size: 11px;
+            }
+
+            input {
+                font-size: 11px;
+            }
+        }
+
+        /* Yatay mod için düzenlemeler */
+        @media screen and (max-height: 480px) {
+            .terminal {
+                margin-bottom: 40px;
+            }
+
+            .help-popup {
+                max-height: 70vh;
+                overflow-y: auto;
+            }
+        }
+
+        .settings-popup {
+            position: absolute;
+            right: 80px;
+            top: 85px;
+            background: var(--terminal-bg);
+            border: 1px solid var(--text-color);
+            border-radius: 5px;
+            padding: 15px;
+            width: 300px;
+            display: none;
+            box-shadow: 0 0 10px rgba(0,255,0,0.1);
+            z-index: 1000;
+        }
+
+        .settings-popup.show {
+            display: block;
+        }
+
+        .settings-popup::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            right: 20px;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 10px solid var(--text-color);
+        }
+
+        .settings-popup::after {
+            content: '';
+            position: absolute;
+            top: -9px;
+            right: 20px;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 10px solid var(--terminal-bg);
+        }
+
+        .settings-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--text-color);
+        }
+
+        .settings-item:last-child {
+            border-bottom: none;
+        }
+
+        .settings-item label {
+            color: var(--text-color);
+            font-size: 14px;
+        }
+
+        .theme-switch {
+            background: var(--text-color);
+            color: var(--bg-color);
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-family: 'MinecraftTen', monospace;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .theme-switch:hover {
+            opacity: 0.8;
+        }
+
+        /* Sağ alttaki theme butonunu kaldırıyoruz */
+        .theme-toggle {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="profile-container">
+        <button class="dropdown-toggle" id="dropdownToggle">▼</button>
+        <div class="profile-icon" id="profileIcon">G</div>
+        <div class="dropdown-menu" id="dropdownMenu">
+            <a class="dropdown-item" onclick="handleMenuClick('settings')">Settings</a>
+            <a class="dropdown-item" onclick="handleMenuClick('help')">Help</a>
+        </div>
+    </div>
+
+    <div class="terminal">
+        <div class="prompt">
+            <span>guest$</span>
+            <input type="text" id="cmd-input" autofocus>
+        </div>
+        <div class="output" id="output"></div>
+    </div>
+
+    <button class="theme-toggle" id="theme-toggle">THEME</button>
+
+    <div class="help-popup" id="helpPopup">
+        <h3>Komut Listesi</h3>
+        <ul>
+            <li><span class="command">help</span> - Mevcut komutları gösterir</li>
+            <li><span class="command">clear</span> - Terminal ekranını temizler</li>
+            <li><span class="command">date</span> - Mevcut tarih ve saati gösterir</li>
+            <li><span class="command">theme [dark/light]</span> - Tema rengini değiştirir</li>
+            <li><span class="command">profile [harf]</span> - Profil ikonunu değiştirir</li>
+        </ul>
+    </div>
+
+    <div class="selected-section" id="selectedSection"></div>
+
+    <div class="settings-popup" id="settingsPopup">
+        <div class="settings-item">
+            <label>Tema</label>
+            <button class="theme-switch" id="themeSwitch">
+                DARK MODE
+            </button>
+        </div>
+        <!-- İleride başka ayarlar buraya eklenebilir -->
+    </div>
+
+    <script>
+        const input = document.getElementById('cmd-input');
+        const output = document.getElementById('output');
+        const themeToggle = document.getElementById('theme-toggle');
+        const dropdownToggle = document.getElementById('dropdownToggle');
+        const dropdownMenu = document.getElementById('dropdownMenu');
+        const helpPopup = document.getElementById('helpPopup');
+        const selectedSection = document.getElementById('selectedSection');
+        let isDark = true;
+
+        let themeMessageTimeout;
+
+        function setTheme(themeName) {
+            if (themeName === 'dark') {
+                document.body.classList.remove('light-theme');
+                isDark = true;
+                showTemporaryMessage('theme', themeName, 'Koyu tema aktif edildi');
+                return;
+            } else if (themeName === 'light') {
+                document.body.classList.add('light-theme');
+                isDark = false;
+                showTemporaryMessage('theme', themeName, 'Açık tema aktif edildi');
+                return;
+            }
+            return 'Geçersiz tema adı. Kullanılabilir temalar: dark, light';
+        }
+
+        function showTemporaryMessage(command, param, message) {
+            // Önceki timeout'u temizle
+            if (themeMessageTimeout) {
+                clearTimeout(themeMessageTimeout);
+                // Önceki komut ve mesajı sil
+                const lines = output.innerHTML.split('\n');
+                lines.splice(lines.length - 3, 2);
+                output.innerHTML = lines.join('\n');
+            }
+
+            // Yeni mesajı ekle
+            const messageLines = `/${command} ${param}\n└─> server$ ${message}\n`;
+            output.innerHTML += messageLines;
+
+            // 3 saniye sonra mesajı sil
+            themeMessageTimeout = setTimeout(() => {
+                const currentLines = output.innerHTML.split('\n');
+                currentLines.splice(currentLines.length - 3, 2);
+                output.innerHTML = currentLines.join('\n');
+            }, 3000);
+        }
+
+        function handleMenuClick(action) {
+            dropdownMenu.classList.remove('show');
+            dropdownToggle.classList.remove('active');
+            
+            // Tüm popup'ları kapat
+            helpPopup.classList.remove('show');
+            settingsPopup.classList.remove('show');
+            selectedSection.classList.remove('show');
+            
+            switch(action) {
+                case 'help':
+                    helpPopup.classList.add('show');
+                    selectedSection.textContent = 'Help';
+                    selectedSection.classList.add('show');
+                    break;
+                case 'settings':
+                    settingsPopup.classList.add('show');
+                    selectedSection.textContent = 'Settings';
+                    selectedSection.classList.add('show');
+                    break;
+            }
+        }
+
+        // Dropdown menü için click event listener'ları
+        dropdownToggle.addEventListener('click', () => {
+            dropdownMenu.classList.toggle('show');
+            dropdownToggle.classList.toggle('active');
+        });
+
+        // Dropdown dışına tıklandığında menüyü kapat
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.profile-container')) {
+                dropdownMenu.classList.remove('show');
+                dropdownToggle.classList.remove('active');
+            }
+        });
+
+        // Help popup'ı ve seçili başlığı dışına tıklandığında kapat
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.help-popup') && 
+                !e.target.closest('.settings-popup') && 
+                !e.target.closest('.dropdown-item') && 
+                !e.target.closest('.selected-section')) {
+                helpPopup.classList.remove('show');
+                settingsPopup.classList.remove('show');
+                selectedSection.classList.remove('show');
+            }
+        });
+
+        function setProfileIcon(text) {
+            const profileIcon = document.getElementById('profileIcon');
+            // Tek karakter kontrolü
+            text = text.charAt(0).toUpperCase();
+            profileIcon.textContent = text;
+            output.innerHTML += `/profile ${text}\n└─> server$ Profil ikonu "${text}" olarak güncellendi\n`;
+        }
+
+        // Terminal komutları için event listener
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const command = this.value.trim();
+                
+                // Boş komut kontrolü
+                if (command === '') {
+                    this.value = '';
+                    return;
+                }
+
+                const args = command.split(' ');
+                
+                switch(args[0].toLowerCase()) {
+                    case 'help':
+                        output.innerHTML += `/${command}\n└─> server$ Mevcut komutlar: help, clear, date, theme [dark/light], profile [harf]\n`;
+                        break;
+                    case 'clear':
+                        output.innerHTML = '';
+                        break;
+                    case 'date':
+                        output.innerHTML += `/${command}\n└─> server$ ${new Date().toLocaleString()}\n`;
+                        break;
+                    case 'theme':
+                        if (args.length < 2) {
+                            output.innerHTML += `/${command}\n└─> server$ Tema belirtilmedi. Kullanım: theme [dark/light]\n`;
+                        } else {
+                            setTheme(args[1].toLowerCase());
+                        }
+                        break;
+                    case 'profile':
+                        if (args.length < 2) {
+                            output.innerHTML += `/${command}\n└─> server$ Profil karakteri belirtilmedi. Kullanım: profile [harf]\n`;
+                        } else {
+                            setProfileIcon(args[1]);
+                        }
+                        break;
+                    default:
+                        output.innerHTML += `/${command}\n└─> server$ Komut bulunamadı: ${args[0]}\n`;
+                }
+                
+                this.value = '';
+            }
+        });
+
+        const settingsPopup = document.getElementById('settingsPopup');
+        const themeSwitch = document.getElementById('themeSwitch');
+
+        // Theme switch butonu için event listener
+        themeSwitch.addEventListener('click', function() {
+            const newTheme = isDark ? 'light' : 'dark';
+            const command = `theme ${newTheme}`;
+            setTheme(newTheme);
+            this.textContent = isDark ? 'LIGHT MODE' : 'DARK MODE';
+        });
+
+        // Popup'ları dışarı tıklandığında kapat
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.help-popup') && 
+                !e.target.closest('.settings-popup') && 
+                !e.target.closest('.dropdown-item') && 
+                !e.target.closest('.selected-section')) {
+                helpPopup.classList.remove('show');
+                settingsPopup.classList.remove('show');
+                selectedSection.classList.remove('show');
+            }
+        });
+    </script>
+</body>
+</html>
